@@ -1,28 +1,50 @@
 import './style.css'
 
+//defaults
 const background = "#010101";
-const vertices = 1;
-const maxSpeed = 10;
+const vertices = 20;
+const maxSpeed = 2;
 const xpadding = 0.1;
 const ypadding = 0.1;
 const radius = 5;
+
+//setup
 var canvas = document.getElementById("canvas");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 var ctx = canvas.getContext("2d");
 ctx.fillStyle = background;
 ctx.fillRect(0, 0, canvas.width, canvas.height);
-var frame = 0;
+
+//border
+const padding = radius
+const outerborder = 5;
+
+//debug and stuff
+var play = true;
+var debug = false;
+var trace = false;
+//1 is false -1 is true
+const inward = 1;
+
+//attributes of the scene
 var xPos = []
 var yPos = []
 var xVel = []
 var yVel = []
 var birthFrame = []
+var frame = 0;
 const xLim = window.innerWidth - (window.innerWidth * (xpadding / 2));
 const yLim = window.innerHeight - (window.innerHeight * (ypadding / 2));
 const minSpeed = maxSpeed * -1
-// sets up the basic variables needed for each point
-function createVar(step) {
+const x1 = ~padding * inward;
+const y1 = ~padding * inward;
+const x2 = window.innerWidth + (padding * inward);
+const y2 = window.innerHeight + (padding * inward);
+
+//populates scenes
+var step = 0;
+function createVar() {
   let x = Math.floor((Math.random() * xLim) + (xpadding / 2));
   let y = Math.floor(Math.random() * yLim + (ypadding / 2));
   let xv = Math.random() * (maxSpeed - minSpeed) + minSpeed;
@@ -33,27 +55,27 @@ function createVar(step) {
   xVel.push(xv)
   yVel.push(yv)
   birthFrame.push(birthF)
-}
-var step = 0;
-function setup() {
-  createVar(step)
   step++
 }
+Array.from({ length: vertices }, () => createVar());
 
-//repeats createVar for the amount of vertices
-Array.from({ length: vertices }, () => setup());
+
 /*
-tells the       [ xmin              | xmax              | ymin               | ymax                 | xVelocitymin  | xVelocitymax | yVelocitymin   | yVelocitymax | xOffset | yOffset] of each side
-leftSide =   0 =[ 0                 | 0                 | 0                  | window.innerHeight   | 0             | maxSpeed     | -max           | max          | -3      | 0      ]
-topSide =    1 =[ 0                 | window.innerWidth | 0                  | 0                    | -max          | max          | 0              | max          | 0       | -3     ]
-rightSide =  2 =[ window.innerWidth | window.innerWidth | 0                  | window.innerHeight   | -max          | 0            | -max           | max          | 3       | 0      ]
-bottomSide = 3 =[ 0                 | window.innerWidth | window.innerHeight | window.innerHeight   | -max          | max          | -max           | 0            | 0       | 3      ]
+This table tells the range of each value of each side
+tells the       [ xmin              | xmax              | ymin               | ymax                 | xVelocitymin  | xVelocitymax | yVelocitymin   | yVelocitymax | side   ] of each side
+leftSide =   0 =[ 0                 | 0                 | 0                  | window.innerHeight   | 0             | maxSpeed     | -max           | max          | left   ]
+topSide =    1 =[ 0                 | window.innerWidth | 0                  | 0                    | -max          | max          | 0              | max          | top    ]
+rightSide =  2 =[ window.innerWidth | window.innerWidth | 0                  | window.innerHeight   | -max          | 0            | -max           | max          | right  ]
+bottomSide = 3 =[ 0                 | window.innerWidth | window.innerHeight | window.innerHeight   | -max          | max          | -max           | 0            | bottom ]
 */
 const sideVars = [
-  [0, 0, 0, window.innerHeight, 0, maxSpeed, ~maxSpeed, ~maxSpeed, -3, 0],
-  [0, window.innerWidth, 0, 0, ~maxSpeed, maxSpeed, 0, maxSpeed, 0, -3],
-  [window.innerWidth, window.innerWidth, 0, window.innerHeight, ~maxSpeed, 0, ~maxSpeed, maxSpeed, 3, 0],
-  [0, window.innerWidth, window.innerHeight, window.innerHeight, ~maxSpeed, maxSpeed, ~maxSpeed, 0, 0, 3]]
+  [x1, x1, y1, y2, .1, maxSpeed, ~maxSpeed, maxSpeed, "left"],
+  [x1, x2, y1, y1, ~maxSpeed, maxSpeed, .1, maxSpeed, "top"],
+  [x2, x2, y1, y2, ~maxSpeed, -0.1, ~maxSpeed, maxSpeed, "right"],
+  [x1, x2, y2, y2, ~maxSpeed, maxSpeed, ~maxSpeed, -0.1, "bottom"]];
+
+
+//rng function that cleans up the code
 function getRandomArbitrary(max, min) {
   if (max === min) {
     return max
@@ -62,64 +84,101 @@ function getRandomArbitrary(max, min) {
     return Math.random() * (max - min) + min;
   }
 }
+
+//function thats called when a new point is needed, it creates all new attributes
 function newVar(iteration) {
   let side = Math.floor(Math.random() * 4)
   let x = getRandomArbitrary(sideVars[side][1], sideVars[side][0]);
   let y = getRandomArbitrary(sideVars[side][3], sideVars[side][2]);
   let xv = getRandomArbitrary(sideVars[side][5], sideVars[side][4]);
   let yv = getRandomArbitrary(sideVars[side][7], sideVars[side][6]);
-  let startX = x + (sideVars[side][8] * radius);
-  let startY = y + (sideVars[side][9] * radius);
-  xPos[iteration] = startX;
-  yPos[iteration] = startY;
+  xPos[iteration] = Math.floor(x);
+  yPos[iteration] = Math.floor(y);
   xVel[iteration] = xv;
   yVel[iteration] = yv;
-  birthFrame[iteration] = 0;
+  birthFrame[iteration] = frame;
   let xpos = (xVel[iteration] * (frame - birthFrame[iteration])) + xPos[iteration];
   let ypos = (yVel[iteration] * (frame - birthFrame[iteration])) + yPos[iteration];
+  if (debug) {
+    console.log(sideVars[side][8]);
+    console.log(`birth frame: ${birthFrame[iteration]}`)
+    console.log(`x1: ${x1}, y1: ${y1}`);
+    console.log(`x2: ${x2}, y2: ${y2}`);
+    console.log(`x:${xPos[iteration]}, y:${yPos[iteration]}`);
+    console.log(`x:${xpos}, y:${ypos}`);
+  }
   ctx.beginPath();
-  console.log(side);
-  console.log(window.innerWidth + "," + window.innerHeight);
-  console.log(`x:${x}, y:${y}`);
-  console.log(`startX:${xPos[iteration]}, startY:${yPos[iteration]}`);
   ctx.arc(xpos, ypos, radius, 0, 2 * Math.PI);
   ctx.fillStyle = 'white';
   ctx.fill();
 }
-function testing() {
-  for (let iteration = 0; iteration < 4; iteration++) {
-    let x = getRandomArbitrary(sideVars[iteration][1], sideVars[iteration][0]);
-    let y = getRandomArbitrary(sideVars[iteration][3], sideVars[iteration][2]);
-    let xv = getRandomArbitrary(sideVars[iteration][5], sideVars[iteration][4]);
-    let yv = getRandomArbitrary(sideVars[iteration][7], sideVars[iteration][6]);
-    let startX = x + (sideVars[iteration][8] * radius);
-    let startY = y + (sideVars[iteration][9] * radius);
-    console.log(iteration);
-    console.log(window.innerWidth + "," + window.innerHeight);
-    console.log(`x:${x}, y:${y}`);
-    console.log(`startX:${startX}, startY:${startY}`);
-  }
-}
-testing()
-newVar()
+
+//draws!
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = background;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (!trace) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
   for (let iteration = 0; iteration < vertices; iteration++) {
     let xpos = (xVel[iteration] * (frame - birthFrame[iteration])) + xPos[iteration];
     let ypos = (yVel[iteration] * (frame - birthFrame[iteration])) + yPos[iteration];
 
-    if (xpos <= (radius * -10) || xpos >= window.innerWidth + (radius * 10) || ypos <= (radius * -10) || ypos >= window.innerHeight + (radius * 10)) {
+    //calculates the x and y and then determines if it needs to make a new point
+    if (xpos <= x1 - outerborder || xpos >= x2 + outerborder || ypos <= y1 - outerborder || ypos >= y2 + outerborder) {
       newVar(iteration)
+    } else {
+      ctx.beginPath();
+      ctx.arc(xpos, ypos, radius, 0, 2 * Math.PI);
     }
 
-    ctx.beginPath();
-    ctx.arc(xpos, ypos, radius, 0, 2 * Math.PI);
-    ctx.fillStyle = 'white'
+    if (debug) {
+      let velocityPercent = (((Math.abs(xVel[iteration]) + Math.abs(yVel[iteration])) / 2) / maxSpeed * 255)
+      ctx.fillStyle = `rgb(${velocityPercent}, 255, 255)`
+    }
+    if (!debug) {
+      ctx.fillStyle = "white"
+    }
     ctx.fill();
   }
-  window.requestAnimationFrame(draw)
-  frame++
+  if (debug) {
+    debugRectangle()
+  }
+  animation()
 }
+
+//shows boundaries where of where a point spawns and where it kills it
+function debugRectangle() {
+  ctx.beginPath();
+  ctx.strokeStyle = "white";
+  ctx.rect(x1, y1, x2 - x1, y2 - y1);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.strokeStyle = "red";
+  ctx.rect(x1 - outerborder, y1 - outerborder, x2 + padding, y2 + padding + outerborder);
+  ctx.stroke();
+}
+//allows for pausing. when play is false it will repeate till its true
+function animation() {
+  if (!play) {
+    window.requestAnimationFrame(animation)
+  } else {
+    window.requestAnimationFrame(draw)
+    frame++
+  }
+}
+
+//event listener key presses
+document.addEventListener('keydown', function (event) {
+  if (event.key === " ") {
+    play = !play
+  }
+  if (event.key === "d") {
+    debug = !debug
+  }
+  if (event.key === "t") {
+    trace = !trace
+  }
+});
+
 window.requestAnimationFrame(draw)
