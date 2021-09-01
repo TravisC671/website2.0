@@ -3,11 +3,12 @@ import './style.css'
 //defaults
 const background = "#010101";
 const vertices = 20;
-const maxSpeed = 2;
+const maxSpeed = 1;
 const xpadding = 0.1;
 const ypadding = 0.1;
 const radius = 5;
-
+const distance = 500;
+const maxlinks = vertices;
 //setup
 var canvas = document.getElementById("canvas");
 canvas.width = window.innerWidth;
@@ -113,6 +114,29 @@ function newVar(iteration) {
   ctx.fill();
 }
 
+//draws the link
+
+function DrawLine( xsub1, ysub1, iteration) {
+  if (maxlinks == 0) {return}
+  for (let step = 0; step < vertices; step++) {
+    if (step != iteration ) {
+      let xsub2 = (xVel[step] * (frame - birthFrame[step])) + xPos[step];
+      let ysub2 = (yVel[step] * (frame - birthFrame[step])) + yPos[step];
+      let a = xsub1 - xsub2;
+      let b = ysub1 - ysub2;
+      let c = Math.sqrt(a*a + b*b)
+      if (c <= distance) {
+        
+        ctx.beginPath();
+        ctx.moveTo(xsub1, ysub1);
+        ctx.lineTo(xsub2, ysub2);
+        ctx.strokeStyle = 'white';
+        ctx.stroke();
+      }
+    }
+  }
+}
+
 //draws!
 function draw() {
   if (!trace) {
@@ -128,6 +152,7 @@ function draw() {
     if (xpos <= x1 - outerborder || xpos >= x2 + outerborder || ypos <= y1 - outerborder || ypos >= y2 + outerborder) {
       newVar(iteration)
     } else {
+      DrawLine(xpos, ypos, iteration)
       ctx.beginPath();
       ctx.arc(xpos, ypos, radius, 0, 2 * Math.PI);
     }
