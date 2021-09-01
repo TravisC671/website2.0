@@ -2,13 +2,15 @@ import './style.css'
 
 //defaults
 const background = "#010101";
-const vertices = 20;
-const maxSpeed = 1;
+const accent = "#575757";
+const vertices = 40;
+const maxSpeed = .2;
 const xpadding = 0.1;
 const ypadding = 0.1;
 const radius = 5;
-const distance = 500;
-const maxlinks = vertices;
+const distance = 250;
+const maxlinks = 5;
+const lineWidth = 2;
 //setup
 var canvas = document.getElementById("canvas");
 canvas.width = window.innerWidth;
@@ -110,28 +112,34 @@ function newVar(iteration) {
   }
   ctx.beginPath();
   ctx.arc(xpos, ypos, radius, 0, 2 * Math.PI);
-  ctx.fillStyle = 'white';
+  ctx.fillStyle = accent;
   ctx.fill();
 }
 
 //draws the link
-
-function DrawLine( xsub1, ysub1, iteration) {
-  if (maxlinks == 0) {return}
+function clamp(max, min, oldMax, oldMin, value) {
+  let factor = (oldMax - oldMin) / value
+  return (max - min) / factor
+}
+function DrawLine(xsub1, ysub1, iteration) {
+  if (maxlinks == 0) { return }
   for (let step = 0; step < vertices; step++) {
-    if (step != iteration ) {
+    if (step != iteration) {
       let xsub2 = (xVel[step] * (frame - birthFrame[step])) + xPos[step];
       let ysub2 = (yVel[step] * (frame - birthFrame[step])) + yPos[step];
       let a = xsub1 - xsub2;
       let b = ysub1 - ysub2;
-      let c = Math.sqrt(a*a + b*b)
+      let c = Math.sqrt(a * a + b * b)
       if (c <= distance) {
-        
+
         ctx.beginPath();
         ctx.moveTo(xsub1, ysub1);
         ctx.lineTo(xsub2, ysub2);
-        ctx.strokeStyle = 'white';
+        ctx.strokeStyle = accent;
+        let width = lineWidth - clamp(lineWidth, 0.01, distance, 0, c)
+        ctx.lineWidth = width;
         ctx.stroke();
+
       }
     }
   }
@@ -155,23 +163,31 @@ function draw() {
       DrawLine(xpos, ypos, iteration)
       ctx.beginPath();
       ctx.arc(xpos, ypos, radius, 0, 2 * Math.PI);
+      if (debug) {
+        let velocityPercent = (((Math.abs(xVel[iteration]) + Math.abs(yVel[iteration])) / 2) / maxSpeed * 255)
+        ctx.fillStyle = `rgb(${velocityPercent}, 255, 255)`
+        ctx.fill();
+        debugCircle(xpos, ypos);
+      }
+      if (!debug) {
+        ctx.fillStyle = accent;
+        ctx.fill();
+      }
     }
-
-    if (debug) {
-      let velocityPercent = (((Math.abs(xVel[iteration]) + Math.abs(yVel[iteration])) / 2) / maxSpeed * 255)
-      ctx.fillStyle = `rgb(${velocityPercent}, 255, 255)`
-    }
-    if (!debug) {
-      ctx.fillStyle = "white"
-    }
-    ctx.fill();
+    
   }
   if (debug) {
     debugRectangle()
   }
   animation()
 }
-
+function debugCircle(xpos, ypos) {
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(xpos, ypos, distance/2, 0, 2 * Math.PI);
+  ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
+  ctx.fill();
+}
 //shows boundaries where of where a point spawns and where it kills it
 function debugRectangle() {
   ctx.beginPath();
@@ -181,7 +197,6 @@ function debugRectangle() {
   ctx.beginPath();
   ctx.strokeStyle = "red";
   ctx.rect(x1 - outerborder, y1 - outerborder, x2 + padding, y2 + padding + outerborder);
-  ctx.stroke();
 }
 //allows for pausing. when play is false it will repeate till its true
 function animation() {
