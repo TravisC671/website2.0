@@ -3,7 +3,7 @@ import './style.css'
 //defaults
 const background = "#010101";
 const accent = "#575757";
-const vertices = 40;
+const vertices = 80;
 const maxSpeed = .2;
 const xpadding = 0.1;
 const ypadding = 0.1;
